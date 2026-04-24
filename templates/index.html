@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+    <header class="header">
+        <div class="header-inner">
+            <div class="logo">🌤️ Weather</div>
+            <div class="search-wrap">
+                <input type="text" id="city-input" placeholder="Search city…" autocomplete="off" />
+                <button id="search-btn" title="Search">→</button>
+                <button id="locate-btn" title="Detect my location">📍</button>
+            </div>
+        </div>
+    </header>
+
+    <div id="loading" class="loading hidden">
+        <div class="spinner"></div>
+        <span>Loading weather data…</span>
+    </div>
+
+    <div id="error-banner" class="error-banner hidden"></div>
+
+    <main id="content" class="content hidden">
+        <div class="top-grid">
+            <div class="card current-card">
+                <div class="current-top">
+                    <div>
+                        <div class="city-name" id="city-name"></div>
+                        <div class="weather-desc" id="weather-desc"></div>
+                    </div>
+                    <div class="weather-emoji" id="weather-emoji"></div>
+                </div>
+                <div class="temp-display">
+                    <span id="temp"></span><span class="unit">°C</span>
+                </div>
+                <div class="details-grid">
+                    <div class="detail-item">
+                        <span class="detail-icon">🌡️</span>
+                        <div>
+                            <div class="detail-label">Feels like</div>
+                            <div class="detail-value" id="feels-like"></div>
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-icon">🔼</span>
+                        <div>
+                            <div class="detail-label">High / Low</div>
+                            <div class="detail-value" id="high-low"></div>
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-icon">💧</span>
+                        <div>
+                            <div class="detail-label">Humidity</div>
+                            <div class="detail-value" id="humidity"></div>
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-icon">💨</span>
+                        <div>
+                            <div class="detail-label">Wind</div>
+                            <div class="detail-value" id="wind"></div>
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-icon">👁️</span>
+                        <div>
+                            <div class="detail-label">Visibility</div>
+                            <div class="detail-value" id="visibility"></div>
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-icon">🌅</span>
+                        <div>
+                            <div class="detail-label">Sunrise / Sunset</div>
+                            <div class="detail-value" id="sunrise-sunset"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card map-card">
+                <div class="map-title">📍 <span id="map-city-label"></span></div>
+                <div id="map"></div>
+            </div>
+        </div>
+
+        <div id="alerts-section" class="alerts-section hidden">
+            <h2 class="section-title">⚠️ Weather Alerts</h2>
+            <div id="alerts-list"></div>
+        </div>
+
+        <div class="forecast-section">
+            <h2 class="section-title">📅 5-Day Forecast</h2>
+            <div id="forecast-grid" class="forecast-grid"></div>
+        </div>
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
