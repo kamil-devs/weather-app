@@ -91,16 +91,49 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/api/geocode")
+def geocode():
+    q = request.args.get("q", "").strip()
+    if len(q) < 2:
+        return jsonify([])
+    if not API_KEY:
+        return jsonify([])
+    try:
+        resp = requests.get(
+            "http://api.openweathermap.org/geo/1.0/direct",
+            params={"q": q, "limit": 5, "appid": API_KEY},
+            timeout=5,
+        )
+        resp.raise_for_status()
+        return jsonify([
+            {
+                "name": item["name"],
+                "state": item.get("state", ""),
+                "country": item.get("country", ""),
+                "lat": item["lat"],
+                "lon": item["lon"],
+            }
+            for item in resp.json()
+        ])
+    except Exception:
+        return jsonify([])
+
+
 @app.route("/api/weather")
 def get_weather():
     city = request.args.get("city", "").strip()
-    if not city:
-        return jsonify({"error": "City name is required"}), 400
+    lat = request.args.get("lat", "").strip()
+    lon = request.args.get("lon", "").strip()
 
     if not API_KEY:
         return jsonify({"error": "API key not configured. Set OPENWEATHER_API_KEY in .env"}), 500
 
-    params = {"q": city, "appid": API_KEY, "units": "metric"}
+    if lat and lon:
+        params = {"lat": lat, "lon": lon, "appid": API_KEY, "units": "metric"}
+    elif city:
+        params = {"q": city, "appid": API_KEY, "units": "metric"}
+    else:
+        return jsonify({"error": "City name or coordinates required"}), 400
 
     try:
         current_resp = requests.get(f"{BASE_URL}/weather", params=params, timeout=10)
@@ -178,19 +211,6 @@ def get_weather():
         "alerts": generate_alerts(current, forecast),
     })
 
-
-@app.route("/api/location")
-def detect_location():
-    try:
-        r = requests.get("https://ipapi.co/json/", timeout=5)
-        r.raise_for_status()
-        data = r.json()
-        city = data.get("city")
-        if not city:
-            return jsonify({"error": "Could not detect location"}), 404
-        return jsonify({"city": city, "country": data.get("country_name", "")})
-    except Exception:
-        return jsonify({"error": "Location detection failed"}), 503
 
 
 if __name__ == "__main__":

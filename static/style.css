@@ -61,6 +61,7 @@ body {
     gap: 8px;
     max-width: 460px;
     margin-left: auto;
+    position: relative;
 }
 .search-wrap input {
     flex: 1;
@@ -90,6 +91,34 @@ body {
 .search-wrap button:active { transform: scale(0.96); }
 #search-btn { background: var(--accent); color: #0a1423; font-weight: 800; font-size: 1.2rem; }
 #locate-btn { background: rgba(255,255,255,0.08); border: 1px solid var(--card-border); color: var(--text); }
+
+/* ── Suggestions dropdown ───────────────────────── */
+.suggestions-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 92px; /* clears the two 42px buttons + 8px gap */
+    background: #0d1e33;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    overflow: hidden;
+    z-index: 200;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+}
+.suggestion-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    transition: background 0.12s;
+}
+.suggestion-item:last-child { border-bottom: none; }
+.suggestion-item:hover,
+.suggestion-item.selected { background: rgba(100, 181, 246, 0.1); }
+.suggestion-name { font-size: 0.9rem; font-weight: 600; color: var(--text); }
+.suggestion-meta { font-size: 0.76rem; color: var(--text-dim); }
 
 /* ── Loading ────────────────────────────────────── */
 .loading {

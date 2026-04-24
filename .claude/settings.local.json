@@ -5,7 +5,11 @@
       "Bash(curl -s http://127.0.0.1:5000/)",
       "Bash(curl -s \"http://127.0.0.1:5000/api/weather?city=London\")",
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('city:', d.get\\('city'\\), '| temp:', d.get\\('temp'\\), '| alerts:', len\\(d.get\\('alerts',[]\\)\\), '| forecast:', len\\(d.get\\('forecast',[]\\)\\)\\)\")",
-      "Bash(pkill -f \"python.*app.py\")"
+      "Bash(pkill -f \"python.*app.py\")",
+      "Bash(python *)",
+      "Bash(curl -s \"http://127.0.0.1:5000/api/geocode?q=Lublin\")",
+      "Bash(curl -s \"http://127.0.0.1:5000/api/weather?lat=51.2465&lon=22.5684\")",
+      "Bash(taskkill /F /IM python.exe)"
     ]
   }
 }

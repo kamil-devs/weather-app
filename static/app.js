@@ -4,9 +4,134 @@ let marker = null;
 const cityInput = document.getElementById('city-input');
 const searchBtn = document.getElementById('search-btn');
 const locateBtn = document.getElementById('locate-btn');
+const suggestionsEl = document.getElementById('suggestions');
 const loading = document.getElementById('loading');
 const errorBanner = document.getElementById('error-banner');
 const content = document.getElementById('content');
+
+// ── Suggestions ──────────────────────────────────
+
+let suggestionData = [];
+let selectedIndex = -1;
+
+function debounce(fn, delay) {
+    let timer;
+    return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), delay); };
+}
+
+function formatSuggestion(r) {
+    const parts = [r.name];
+    if (r.state) parts.push(r.state);
+    if (r.country) parts.push(r.country);
+    return parts.join(', ');
+}
+
+async function fetchSuggestions(q) {
+    if (q.length < 2) { hideSuggestions(); return; }
+    try {
+        const resp = await fetch('/api/geocode?q=' + encodeURIComponent(q));
+        const data = await resp.json();
+        if (Array.isArray(data) && data.length > 0) {
+            showSuggestions(data);
+        } else {
+            hideSuggestions();
+        }
+    } catch {
+        hideSuggestions();
+    }
+}
+
+function showSuggestions(results) {
+    suggestionData = results;
+    selectedIndex = -1;
+    suggestionsEl.textContent = '';
+
+    results.forEach(r => {
+        const item = document.createElement('div');
+        item.className = 'suggestion-item';
+
+        const nameEl = document.createElement('span');
+        nameEl.className = 'suggestion-name';
+        nameEl.textContent = r.name;
+
+        const metaParts = [];
+        if (r.state) metaParts.push(r.state);
+        if (r.country) metaParts.push(r.country);
+
+        const metaEl = document.createElement('span');
+        metaEl.className = 'suggestion-meta';
+        metaEl.textContent = metaParts.join(', ');
+
+        item.appendChild(nameEl);
+        item.appendChild(metaEl);
+
+        item.addEventListener('mousedown', e => {
+            e.preventDefault(); // prevent input blur before click fires
+            selectSuggestion(r);
+        });
+
+        suggestionsEl.appendChild(item);
+    });
+
+    suggestionsEl.classList.remove('hidden');
+}
+
+function hideSuggestions() {
+    suggestionsEl.classList.add('hidden');
+    suggestionsEl.textContent = '';
+    suggestionData = [];
+    selectedIndex = -1;
+}
+
+function highlightSelected() {
+    const items = suggestionsEl.querySelectorAll('.suggestion-item');
+    items.forEach((item, i) => item.classList.toggle('selected', i === selectedIndex));
+}
+
+function selectSuggestion(r) {
+    cityInput.value = formatSuggestion(r);
+    hideSuggestions();
+    fetchWeather(null, r.lat, r.lon);
+}
+
+const debouncedSuggestions = debounce(fetchSuggestions, 280);
+
+cityInput.addEventListener('input', () => {
+    debouncedSuggestions(cityInput.value.trim());
+});
+
+cityInput.addEventListener('blur', () => {
+    // Small delay so mousedown on a suggestion fires before blur hides it
+    setTimeout(hideSuggestions, 150);
+});
+
+cityInput.addEventListener('keydown', e => {
+    const items = suggestionsEl.querySelectorAll('.suggestion-item');
+    const open = !suggestionsEl.classList.contains('hidden') && items.length > 0;
+
+    if (e.key === 'ArrowDown' && open) {
+        e.preventDefault();
+        selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+        highlightSelected();
+    } else if (e.key === 'ArrowUp' && open) {
+        e.preventDefault();
+        selectedIndex = Math.max(selectedIndex - 1, -1);
+        highlightSelected();
+    } else if (e.key === 'Enter') {
+        if (open && selectedIndex >= 0 && suggestionData[selectedIndex]) {
+            e.preventDefault();
+            selectSuggestion(suggestionData[selectedIndex]);
+        } else {
+            hideSuggestions();
+            const city = cityInput.value.trim();
+            if (city) fetchWeather(city);
+        }
+    } else if (e.key === 'Escape') {
+        hideSuggestions();
+    }
+});
+
+// ── Weather fetch ────────────────────────────────
 
 function showLoading() {
     loading.classList.remove('hidden');
@@ -28,10 +153,13 @@ function showContent() {
     content.classList.remove('hidden');
 }
 
-async function fetchWeather(city) {
+async function fetchWeather(city, lat, lon) {
     showLoading();
+    const url = (lat != null && lon != null)
+        ? '/api/weather?lat=' + lat + '&lon=' + lon
+        : '/api/weather?city=' + encodeURIComponent(city);
     try {
-        const resp = await fetch('/api/weather?city=' + encodeURIComponent(city));
+        const resp = await fetch(url);
         const data = await resp.json();
         hideLoading();
         if (!resp.ok) {
@@ -46,6 +174,8 @@ async function fetchWeather(city) {
         showError('Failed to fetch weather data. Check your connection.');
     }
 }
+
+// ── Render ───────────────────────────────────────
 
 function setText(id, value) {
     document.getElementById(id).textContent = value;
@@ -178,7 +308,6 @@ function updateMap(lat, lon, city, country, emoji, temp, desc) {
         map.removeLayer(marker);
     }
 
-    // Build popup DOM safely
     const popupEl = document.createElement('div');
     const b = document.createElement('b');
     b.textContent = city + ', ' + country;
@@ -186,7 +315,6 @@ function updateMap(lat, lon, city, country, emoji, temp, desc) {
     popupEl.appendChild(document.createElement('br'));
     popupEl.appendChild(document.createTextNode(temp + '°C — ' + desc));
 
-    // Emoji icon (controlled server-side value, not user input)
     const iconDiv = document.createElement('div');
     iconDiv.style.cssText = 'font-size:2.2rem;line-height:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.5))';
     iconDiv.textContent = emoji;
@@ -211,28 +339,23 @@ function updateMap(lat, lon, city, country, emoji, temp, desc) {
 // ── Event listeners ──────────────────────────────
 
 searchBtn.addEventListener('click', () => {
+    hideSuggestions();
     const city = cityInput.value.trim();
     if (city) fetchWeather(city);
-});
-
-cityInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter') {
-        const city = cityInput.value.trim();
-        if (city) fetchWeather(city);
-    }
 });
 
 locateBtn.addEventListener('click', async () => {
     locateBtn.disabled = true;
     locateBtn.textContent = '⏳';
     try {
-        const resp = await fetch('/api/location');
+        // Call ipapi.co directly from the browser so the user's IP is used, not the server's
+        const resp = await fetch('https://ipapi.co/json/');
         const data = await resp.json();
-        if (resp.ok && data.city) {
+        if (data.city) {
             cityInput.value = data.city;
             fetchWeather(data.city);
         } else {
-            showError(data.error || 'Could not detect location');
+            showError('Could not detect location');
         }
     } catch {
         showError('Location detection failed');
