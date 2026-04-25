@@ -3,6 +3,11 @@ let marker = null;
 let hourlyChart = null;
 let lastHourlyData = null;
 let lastLocation = null;
+let radarLayer = null;
+let compassHeading = null;
+let compassType = null;
+let lastWeatherData = null;
+let lastUserCoords = null;
 
 // ── i18n ─────────────────────────────────────────────
 const TRANSLATIONS = {
@@ -31,6 +36,13 @@ const TRANSLATIONS = {
     locationError:     'Could not detect location',
     connectionError:   'Failed to fetch weather data. Check your connection.',
     unknownError:      'Unknown error occurred',
+    dirWindFrom:       'Wind from',
+    dirRainFrom:       'Rain from',
+    dirStorm:          'Storm',
+    dirStormNearby:    'Nearby',
+    labelRadar:        'Rain Radar',
+    compassNote:       '🧭 Direction relative to north',
+    compassActive:     '🧭 Compass active — arrows relative to you',
   },
   pl: {
     logo:              '🌤️ Pogoda Kamila',
@@ -57,6 +69,13 @@ const TRANSLATIONS = {
     locationError:     'Nie można wykryć lokalizacji',
     connectionError:   'Nie udało się pobrać danych. Sprawdź połączenie.',
     unknownError:      'Wystąpił nieznany błąd',
+    dirWindFrom:       'Wiatr z',
+    dirRainFrom:       'Deszcz z',
+    dirStorm:          'Burza',
+    dirStormNearby:    'W pobliżu',
+    labelRadar:        'Radar opadów',
+    compassNote:       '🧭 Kierunek względem północy',
+    compassActive:     '🧭 Kompas aktywny — strzałki względem Ciebie',
   },
 };
 
@@ -356,6 +375,8 @@ function setText(id, value) {
 }
 
 function renderWeather(d) {
+    lastWeatherData = d;
+
     setText('city-name', d.city + ', ' + d.country);
     setText('weather-desc', d.description);
     setWeatherIcon(document.getElementById('weather-emoji'), d.emoji);
@@ -364,7 +385,8 @@ function renderWeather(d) {
     setText('feels-like', d.feels_like + '°C');
     setText('high-low', d.temp_max + '°C / ' + d.temp_min + '°C');
     setText('humidity', d.humidity + '%');
-    setText('wind', d.wind_speed + ' m/s');
+    const windDir = d.wind_deg != null ? ` · ${bearingToCardinal(d.wind_deg)}` : '';
+    setText('wind', d.wind_speed + ' m/s' + windDir);
     setText('visibility', (d.visibility / 1000).toFixed(1) + ' km');
     setText('sunrise-sunset', d.sunrise + ' / ' + d.sunset);
     setText('map-city-label', d.city + ', ' + d.country);
@@ -373,6 +395,7 @@ function renderWeather(d) {
     renderForecast(d.forecast);
     lastHourlyData = d.hourly || [];
     renderHourlyChart(lastHourlyData);
+    updateDirectionPanel();
 }
 
 function renderAlerts(alerts) {
@@ -561,6 +584,117 @@ function renderHourlyChart(hourly) {
     });
 }
 
+// ── Direction / compass helpers ──────────────────
+
+function calcBearing(lat1, lon1, lat2, lon2) {
+    const toRad = d => d * Math.PI / 180;
+    const dLon = toRad(lon2 - lon1);
+    const φ1 = toRad(lat1), φ2 = toRad(lat2);
+    const y = Math.sin(dLon) * Math.cos(φ2);
+    const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(dLon);
+    return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+}
+
+function haversineKm(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2
+        + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function bearingToCardinal(deg) {
+    const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    return dirs[Math.round(deg / 45) % 8];
+}
+
+function updateArrow(el, bearingDeg) {
+    const angle = compassHeading !== null
+        ? (bearingDeg - compassHeading + 360) % 360
+        : bearingDeg;
+    el.style.transform = `rotate(${angle}deg)`;
+}
+
+function updateDirectionPanel() {
+    if (!lastWeatherData) return;
+    const d = lastWeatherData;
+    const t = TRANSLATIONS[currentLang];
+    let visible = 0;
+
+    // Wind
+    const windItem = document.getElementById('dir-wind-item');
+    if (d.wind_deg != null) {
+        updateArrow(document.getElementById('arrow-wind'), d.wind_deg);
+        document.getElementById('dir-wind-val').textContent =
+            `${bearingToCardinal(d.wind_deg)} · ${Math.round(d.wind_deg)}°`;
+        windItem.classList.remove('hidden');
+        visible++;
+    } else {
+        windItem.classList.add('hidden');
+    }
+
+    // Rain — only when raining (not thunderstorm, which gets the storm item)
+    const rainItem = document.getElementById('dir-rain-item');
+    const hasRain = d.emoji && ['🌦️', '🌧️'].includes(d.emoji);
+    if (hasRain && d.wind_deg != null) {
+        updateArrow(document.getElementById('arrow-rain'), d.wind_deg);
+        document.getElementById('dir-rain-val').textContent =
+            `${bearingToCardinal(d.wind_deg)} · ${Math.round(d.wind_deg)}°`;
+        rainItem.classList.remove('hidden');
+        visible++;
+    } else {
+        rainItem.classList.add('hidden');
+    }
+
+    // Storm
+    const stormItem = document.getElementById('dir-storm-item');
+    if (d.thunderstorm_active) {
+        const arrowWrap = document.getElementById('storm-arrow-wrap');
+        const arrowEl = document.getElementById('arrow-storm');
+        if (lastUserCoords && d.lat != null && d.lon != null) {
+            const bearing = calcBearing(lastUserCoords.lat, lastUserCoords.lon, d.lat, d.lon);
+            const distKm = haversineKm(lastUserCoords.lat, lastUserCoords.lon, d.lat, d.lon);
+            arrowWrap.style.visibility = 'visible';
+            updateArrow(arrowEl, bearing);
+            const distStr = distKm < 1 ? t.dirStormNearby : `~${Math.round(distKm)} km`;
+            document.getElementById('dir-storm-val').textContent =
+                `${bearingToCardinal(bearing)} · ${distStr}`;
+        } else {
+            arrowWrap.style.visibility = 'hidden';
+            document.getElementById('dir-storm-val').textContent = t.dirStormNearby;
+        }
+        stormItem.classList.remove('hidden');
+        visible++;
+    } else {
+        stormItem.classList.add('hidden');
+    }
+
+    const panel = document.getElementById('direction-panel');
+    panel.classList.toggle('hidden', visible === 0);
+
+    if (visible > 0) {
+        const note = document.getElementById('compass-note');
+        note.textContent = compassHeading !== null ? t.compassActive : t.compassNote;
+    }
+}
+
+function toggleRadar() {
+    if (!map) return;
+    const btn = document.getElementById('radar-btn');
+    if (radarLayer) {
+        map.removeLayer(radarLayer);
+        radarLayer = null;
+        btn.classList.remove('active');
+    } else {
+        radarLayer = L.tileLayer(
+            `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${OWM_KEY}`,
+            { opacity: 0.65, attribution: '© OpenWeatherMap', maxZoom: 18 }
+        ).addTo(map);
+        btn.classList.add('active');
+    }
+}
+
 function updateMap(lat, lon, city, country, emoji, temp, desc) {
     if (!map) {
         map = L.map('map', { zoomControl: true }).setView([lat, lon], 11);
@@ -623,6 +757,7 @@ async function gpsLocate() {
                 maximumAge: 300000,
             });
         });
+        lastUserCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
         fetchWeather(null, pos.coords.latitude, pos.coords.longitude);
         return true;
     } catch {
@@ -657,6 +792,26 @@ locateBtn.addEventListener('click', async () => {
         locateBtn.textContent = '📍';
     }
 });
+
+document.getElementById('radar-btn').addEventListener('click', toggleRadar);
+
+// Compass — absolute (Chrome/Android) takes priority; iOS webkit fallback
+window.addEventListener('deviceorientationabsolute', e => {
+    if (e.alpha !== null) {
+        compassHeading = e.alpha;
+        compassType = 'absolute';
+        updateDirectionPanel();
+    }
+}, true);
+
+window.addEventListener('deviceorientation', e => {
+    if (compassType === 'absolute') return;
+    if (e.webkitCompassHeading != null) {
+        compassHeading = e.webkitCompassHeading;
+        compassType = 'webkit';
+        updateDirectionPanel();
+    }
+}, true);
 
 // Auto-detect location on page load: GPS → IP → Warsaw
 (async () => {
