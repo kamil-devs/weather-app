@@ -1,4 +1,5 @@
 from flask import Flask, render_template, jsonify, request
+import re
 import requests
 import os
 from datetime import datetime, timezone
@@ -91,6 +92,10 @@ def index():
     return render_template("index.html")
 
 
+def _looks_like_postcode(q):
+    return bool(re.match(r'^\d{2,}(?:[-\s]\d{2,})?$', q.strip()))
+
+
 @app.route("/api/geocode")
 def geocode():
     q = request.args.get("q", "").strip()
@@ -98,6 +103,10 @@ def geocode():
         return jsonify([])
     if not API_KEY:
         return jsonify([])
+
+    results = []
+
+    # Standard city/name search
     try:
         resp = requests.get(
             "http://api.openweathermap.org/geo/1.0/direct",
@@ -105,18 +114,52 @@ def geocode():
             timeout=5,
         )
         resp.raise_for_status()
-        return jsonify([
-            {
+        for item in resp.json():
+            results.append({
                 "name": item["name"],
                 "state": item.get("state", ""),
                 "country": item.get("country", ""),
                 "lat": item["lat"],
                 "lon": item["lon"],
-            }
-            for item in resp.json()
-        ])
+            })
     except Exception:
-        return jsonify([])
+        pass
+
+    # Postcode/zip search — supports "20-001" (tries PL) or "20-001,PL" explicitly
+    zip_query = None
+    if ',' in q:
+        zip_query = q.replace(' ', '')
+    elif _looks_like_postcode(q):
+        zip_query = f"{q},PL"
+
+    if zip_query:
+        try:
+            resp = requests.get(
+                "http://api.openweathermap.org/geo/1.0/zip",
+                params={"zip": zip_query, "appid": API_KEY},
+                timeout=5,
+            )
+            if resp.status_code == 200:
+                item = resp.json()
+                if "lat" in item:
+                    postcode_part = q.split(',')[0].strip()
+                    is_dup = any(
+                        abs(r["lat"] - item["lat"]) < 0.05 and abs(r["lon"] - item["lon"]) < 0.05
+                        for r in results
+                    )
+                    if not is_dup:
+                        results.insert(0, {
+                            "name": item["name"],
+                            "state": "",
+                            "country": item.get("country", ""),
+                            "lat": item["lat"],
+                            "lon": item["lon"],
+                            "postcode": postcode_part,
+                        })
+        except Exception:
+            pass
+
+    return jsonify(results[:5])
 
 
 @app.route("/api/weather")

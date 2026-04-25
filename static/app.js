@@ -20,6 +20,11 @@ function debounce(fn, delay) {
 }
 
 function formatSuggestion(r) {
+    if (r.postcode) {
+        const parts = [r.postcode, r.name];
+        if (r.country) parts.push(r.country);
+        return parts.join(', ');
+    }
     const parts = [r.name];
     if (r.state) parts.push(r.state);
     if (r.country) parts.push(r.country);
@@ -52,15 +57,16 @@ function showSuggestions(results) {
 
         const nameEl = document.createElement('span');
         nameEl.className = 'suggestion-name';
-        nameEl.textContent = r.name;
+        nameEl.textContent = r.postcode ? r.postcode + '  ·  ' + r.name : r.name;
 
         const metaParts = [];
-        if (r.state) metaParts.push(r.state);
+        if (!r.postcode && r.state) metaParts.push(r.state);
         if (r.country) metaParts.push(r.country);
+        if (r.postcode) metaParts.push('postcode');
 
         const metaEl = document.createElement('span');
-        metaEl.className = 'suggestion-meta';
-        metaEl.textContent = metaParts.join(', ');
+        metaEl.className = 'suggestion-meta' + (r.postcode ? ' suggestion-meta--postcode' : '');
+        metaEl.textContent = metaParts.join('  ·  ');
 
         item.appendChild(nameEl);
         item.appendChild(metaEl);
@@ -344,23 +350,54 @@ searchBtn.addEventListener('click', () => {
     if (city) fetchWeather(city);
 });
 
-locateBtn.addEventListener('click', async () => {
-    locateBtn.disabled = true;
-    locateBtn.textContent = '⏳';
+async function gpsLocate() {
+    if (!navigator.geolocation) return false;
     try {
-        // Call ipapi.co directly from the browser so the user's IP is used, not the server's
+        const pos = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+                timeout: 8000,
+                maximumAge: 300000,
+            });
+        });
+        fetchWeather(null, pos.coords.latitude, pos.coords.longitude);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+async function ipLocate() {
+    try {
         const resp = await fetch('https://ipapi.co/json/');
         const data = await resp.json();
         if (data.city) {
             cityInput.value = data.city;
             fetchWeather(data.city);
-        } else {
-            showError('Could not detect location');
+            return true;
         }
     } catch {
-        showError('Location detection failed');
+        // fall through
+    }
+    return false;
+}
+
+locateBtn.addEventListener('click', async () => {
+    locateBtn.disabled = true;
+    locateBtn.textContent = '⏳';
+    try {
+        if (await gpsLocate()) return;
+        if (await ipLocate()) return;
+        showError('Could not detect location');
     } finally {
         locateBtn.disabled = false;
         locateBtn.textContent = '📍';
     }
 });
+
+// Auto-detect location on page load: GPS → IP → Warsaw
+(async () => {
+    showLoading();
+    if (await gpsLocate()) return;
+    if (await ipLocate()) return;
+    fetchWeather('Warsaw');
+})();

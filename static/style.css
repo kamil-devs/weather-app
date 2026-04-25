@@ -119,6 +119,7 @@ body {
 .suggestion-item.selected { background: rgba(100, 181, 246, 0.1); }
 .suggestion-name { font-size: 0.9rem; font-weight: 600; color: var(--text); }
 .suggestion-meta { font-size: 0.76rem; color: var(--text-dim); }
+.suggestion-meta--postcode { color: var(--accent); opacity: 0.8; }
 
 /* ── Loading ────────────────────────────────────── */
 .loading {
