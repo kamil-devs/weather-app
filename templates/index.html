@@ -20,12 +20,43 @@
                 <button id="search-btn" title="Search">→</button>
                 <button id="locate-btn" title="Detect my location">📍</button>
             </div>
+            <button id="theme-btn" class="theme-btn" title="Switch to light mode">☀️</button>
         </div>
     </header>
 
-    <div id="loading" class="loading hidden">
-        <div class="spinner"></div>
-        <span>Loading weather data…</span>
+    <!-- Skeleton loader — shown while fetching, mirrors content layout -->
+    <div id="skeleton" class="content hidden" aria-hidden="true">
+        <div class="top-grid">
+            <div class="card">
+                <div class="current-top">
+                    <div style="flex:1">
+                        <div class="sk sk-city-name"></div>
+                        <div class="sk sk-desc"></div>
+                    </div>
+                    <div class="sk sk-icon-lg"></div>
+                </div>
+                <div class="sk sk-temp-lg"></div>
+                <div class="details-grid">
+                    <div class="sk sk-detail"></div>
+                    <div class="sk sk-detail"></div>
+                    <div class="sk sk-detail"></div>
+                    <div class="sk sk-detail"></div>
+                    <div class="sk sk-detail"></div>
+                    <div class="sk sk-detail"></div>
+                </div>
+            </div>
+            <div class="card" style="display:flex;flex-direction:column;gap:12px">
+                <div class="sk sk-map-label"></div>
+                <div class="sk sk-map-box"></div>
+            </div>
+        </div>
+        <div class="forecast-grid">
+            <div class="card forecast-card"><div class="sk sk-fc"></div></div>
+            <div class="card forecast-card"><div class="sk sk-fc"></div></div>
+            <div class="card forecast-card"><div class="sk sk-fc"></div></div>
+            <div class="card forecast-card"><div class="sk sk-fc"></div></div>
+            <div class="card forecast-card"><div class="sk sk-fc"></div></div>
+        </div>
     </div>
 
     <div id="error-banner" class="error-banner hidden"></div>
@@ -44,42 +75,42 @@
                     <span id="temp"></span><span class="unit">°C</span>
                 </div>
                 <div class="details-grid">
-                    <div class="detail-item">
+                    <div class="detail-item" data-tooltip="Temperature adjusted for humidity and wind chill">
                         <span class="detail-icon">🌡️</span>
                         <div>
                             <div class="detail-label">Feels like</div>
                             <div class="detail-value" id="feels-like"></div>
                         </div>
                     </div>
-                    <div class="detail-item">
+                    <div class="detail-item" data-tooltip="Today's forecast high and low temperatures">
                         <span class="detail-icon">🔼</span>
                         <div>
                             <div class="detail-label">High / Low</div>
                             <div class="detail-value" id="high-low"></div>
                         </div>
                     </div>
-                    <div class="detail-item">
+                    <div class="detail-item" data-tooltip="Relative humidity — higher means more moisture in the air">
                         <span class="detail-icon">💧</span>
                         <div>
                             <div class="detail-label">Humidity</div>
                             <div class="detail-value" id="humidity"></div>
                         </div>
                     </div>
-                    <div class="detail-item">
+                    <div class="detail-item" data-tooltip="Wind speed in metres per second">
                         <span class="detail-icon">💨</span>
                         <div>
                             <div class="detail-label">Wind</div>
                             <div class="detail-value" id="wind"></div>
                         </div>
                     </div>
-                    <div class="detail-item">
+                    <div class="detail-item" data-tooltip="How far you can see horizontally">
                         <span class="detail-icon">👁️</span>
                         <div>
                             <div class="detail-label">Visibility</div>
                             <div class="detail-value" id="visibility"></div>
                         </div>
                     </div>
-                    <div class="detail-item">
+                    <div class="detail-item" data-tooltip="Local sunrise and sunset times">
                         <span class="detail-icon">🌅</span>
                         <div>
                             <div class="detail-label">Sunrise / Sunset</div>

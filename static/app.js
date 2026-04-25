@@ -43,10 +43,34 @@ function setWeatherIcon(el, emoji) {
 const cityInput = document.getElementById('city-input');
 const searchBtn = document.getElementById('search-btn');
 const locateBtn = document.getElementById('locate-btn');
+const themeBtn = document.getElementById('theme-btn');
 const suggestionsEl = document.getElementById('suggestions');
-const loading = document.getElementById('loading');
+const skeleton = document.getElementById('skeleton');
 const errorBanner = document.getElementById('error-banner');
 const content = document.getElementById('content');
+
+// ── Theme ────────────────────────────────────────────
+function updateThemeBtn() {
+    const isLight = document.body.classList.contains('light');
+    themeBtn.textContent = isLight ? '🌙' : '☀️';
+    themeBtn.title = isLight ? 'Switch to dark mode' : 'Switch to light mode';
+}
+
+(function initTheme() {
+    const saved = localStorage.getItem('weather-theme');
+    if (saved) {
+        document.body.classList.toggle('light', saved === 'light');
+    } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+        document.body.classList.add('light');
+    }
+    updateThemeBtn();
+})();
+
+themeBtn.addEventListener('click', () => {
+    document.body.classList.toggle('light');
+    localStorage.setItem('weather-theme', document.body.classList.contains('light') ? 'light' : 'dark');
+    updateThemeBtn();
+});
 
 // ── Suggestions ──────────────────────────────────
 
@@ -179,13 +203,13 @@ cityInput.addEventListener('keydown', e => {
 // ── Weather fetch ────────────────────────────────
 
 function showLoading() {
-    loading.classList.remove('hidden');
+    skeleton.classList.remove('hidden');
     errorBanner.classList.add('hidden');
     content.classList.add('hidden');
 }
 
 function hideLoading() {
-    loading.classList.add('hidden');
+    skeleton.classList.add('hidden');
 }
 
 function showError(msg) {
@@ -196,6 +220,9 @@ function showError(msg) {
 
 function showContent() {
     content.classList.remove('hidden');
+    content.classList.remove('content-enter');
+    void content.offsetWidth;
+    content.classList.add('content-enter');
 }
 
 async function fetchWeather(city, lat, lon) {
@@ -286,9 +313,10 @@ function renderForecast(days) {
     const grid = document.getElementById('forecast-grid');
     grid.textContent = '';
 
-    days.forEach(d => {
+    days.forEach((d, i) => {
         const card = document.createElement('div');
         card.className = 'forecast-card';
+        card.style.animationDelay = `${i * 0.07}s`;
 
         const dayEl = document.createElement('div');
         dayEl.className = 'fc-day';
@@ -370,7 +398,7 @@ function updateMap(lat, lon, city, country, emoji, temp, desc) {
 
     const icon = L.divIcon({
         html: tmpDiv.innerHTML,
-        className: '',
+        className: 'map-pin-wrapper',
         iconSize: [44, 44],
         iconAnchor: [22, 22],
         popupAnchor: [0, -24],
