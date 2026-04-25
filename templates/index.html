@@ -126,6 +126,13 @@
             </div>
         </div>
 
+        <section id="hourly-section" class="card hourly-section hidden">
+            <h2 class="section-title">🕒 Today's Temperature</h2>
+            <div class="chart-wrap">
+                <canvas id="hourly-chart"></canvas>
+            </div>
+        </section>
+
         <div id="alerts-section" class="alerts-section hidden">
             <h2 class="section-title">⚠️ Weather Alerts</h2>
             <div id="alerts-list"></div>
@@ -138,6 +145,7 @@
     </main>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

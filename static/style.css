@@ -604,6 +604,14 @@ body.light .forecast-card:hover { border-color: rgba(21,101,192,0.3); }
 .fc-low { color: var(--text-dim); font-weight: 400; }
 .fc-rain { font-size: 0.7rem; color: #90caf9; margin-top: 6px; }
 
+/* ── Hourly chart ────────────────────────────────── */
+.hourly-section { padding: 24px 28px 20px; }
+.hourly-section .section-title { margin-bottom: 16px; }
+.chart-wrap {
+    position: relative;
+    height: 180px;
+}
+
 /* ── Utility ─────────────────────────────────────── */
 .hidden { display: none !important; }
 

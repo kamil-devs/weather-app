@@ -1,5 +1,7 @@
 let map = null;
 let marker = null;
+let hourlyChart = null;
+let lastHourlyData = null;
 
 // ── Weather SVG icons ────────────────────────────
 const WEATHER_SVGS = {
@@ -70,6 +72,7 @@ themeBtn.addEventListener('click', () => {
     document.body.classList.toggle('light');
     localStorage.setItem('weather-theme', document.body.classList.contains('light') ? 'light' : 'dark');
     updateThemeBtn();
+    if (lastHourlyData) renderHourlyChart(lastHourlyData);
 });
 
 // ── Suggestions ──────────────────────────────────
@@ -269,6 +272,8 @@ function renderWeather(d) {
 
     renderAlerts(d.alerts);
     renderForecast(d.forecast);
+    lastHourlyData = d.hourly || [];
+    renderHourlyChart(lastHourlyData);
 }
 
 function renderAlerts(alerts) {
@@ -362,6 +367,98 @@ function renderForecast(days) {
         }
 
         grid.appendChild(card);
+    });
+}
+
+function renderHourlyChart(hourly) {
+    const section = document.getElementById('hourly-section');
+    if (!hourly || hourly.length < 2) {
+        section.classList.add('hidden');
+        return;
+    }
+    section.classList.remove('hidden');
+
+    const isLight = document.body.classList.contains('light');
+    const accent       = isLight ? '#1565c0' : '#64b5f6';
+    const textDim      = isLight ? 'rgba(26,36,51,0.5)'    : 'rgba(232,237,244,0.5)';
+    const gridColor    = isLight ? 'rgba(0,0,0,0.06)'      : 'rgba(255,255,255,0.06)';
+    const tooltipBg    = isLight ? '#1a2433'               : '#0d1e33';
+    const tooltipTitle = isLight ? 'rgba(232,237,244,0.7)' : 'rgba(232,237,244,0.6)';
+    const tooltipBody  = accent;
+    const gradTop      = isLight ? 'rgba(21,101,192,0.22)' : 'rgba(100,181,246,0.3)';
+
+    const canvas = document.getElementById('hourly-chart');
+    const ctx = canvas.getContext('2d');
+    const h = canvas.parentElement.clientHeight || 180;
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, gradTop);
+    grad.addColorStop(1, 'rgba(100,181,246,0)');
+
+    if (hourlyChart) hourlyChart.destroy();
+
+    hourlyChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: hourly.map(h => h.time),
+            datasets: [{
+                data: hourly.map(h => h.temp),
+                borderColor: accent,
+                backgroundColor: grad,
+                borderWidth: 2.5,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: accent,
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 7,
+                tension: 0.4,
+                fill: true,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    displayColors: false,
+                    backgroundColor: tooltipBg,
+                    titleColor: tooltipTitle,
+                    bodyColor: tooltipBody,
+                    borderColor: 'rgba(255,255,255,0.1)',
+                    borderWidth: 1,
+                    padding: 10,
+                    cornerRadius: 10,
+                    titleFont: { family: 'Inter', size: 12 },
+                    bodyFont: { family: 'Inter', size: 15, weight: '700' },
+                    callbacks: {
+                        label: ctx => ` ${ctx.parsed.y}°C`,
+                        afterLabel: ctx => {
+                            const fl = hourly[ctx.dataIndex]?.feels_like;
+                            return fl != null ? ` Feels like ${fl}°C` : '';
+                        },
+                    },
+                },
+            },
+            interaction: { intersect: false, mode: 'index' },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    border: { display: false },
+                    ticks: { color: textDim, font: { family: 'Inter', size: 11 } },
+                },
+                y: {
+                    grid: { color: gridColor, drawBorder: false },
+                    border: { display: false },
+                    ticks: {
+                        color: textDim,
+                        font: { family: 'Inter', size: 11 },
+                        callback: val => `${Math.round(val)}°`,
+                        maxTicksLimit: 4,
+                    },
+                    grace: '15%',
+                },
+            },
+        },
     });
 }
 

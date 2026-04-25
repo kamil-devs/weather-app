@@ -195,9 +195,26 @@ def get_weather():
     except requests.exceptions.Timeout:
         return jsonify({"error": "Request timed out"}), 504
 
+    # Extract today's 3-hourly data for the temperature graph
+    now_utc = datetime.now(timezone.utc)
+    today = now_utc.strftime("%Y-%m-%d")
+
+    hourly = [{
+        "time": now_utc.strftime("%H:%M"),
+        "temp": round(current["main"]["temp"], 1),
+        "feels_like": round(current["main"]["feels_like"], 1),
+    }]
+    for item in forecast["list"]:
+        dt = datetime.fromtimestamp(item["dt"], tz=timezone.utc)
+        if dt.strftime("%Y-%m-%d") == today and dt > now_utc:
+            hourly.append({
+                "time": dt.strftime("%H:%M"),
+                "temp": round(item["main"]["temp"], 1),
+                "feels_like": round(item["main"]["feels_like"], 1),
+            })
+
     # Group forecast into daily buckets, skip today
     daily = {}
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     for item in forecast["list"]:
         dt = datetime.fromtimestamp(item["dt"], tz=timezone.utc)
         day_key = dt.strftime("%Y-%m-%d")
@@ -251,6 +268,7 @@ def get_weather():
         "sunrise": datetime.fromtimestamp(current["sys"]["sunrise"], tz=timezone.utc).strftime("%H:%M"),
         "sunset": datetime.fromtimestamp(current["sys"]["sunset"], tz=timezone.utc).strftime("%H:%M"),
         "forecast": forecast_days,
+        "hourly": hourly,
         "alerts": generate_alerts(current, forecast),
     })
 
