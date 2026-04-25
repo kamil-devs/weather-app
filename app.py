@@ -111,7 +111,7 @@ def generate_alerts(current, forecast, lang="en"):
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", owm_key=API_KEY or '')
 
 
 def _looks_like_postcode(q):
@@ -289,6 +289,8 @@ def get_weather():
         "temp_max": round(current["main"]["temp_max"], 1),
         "humidity": current["main"]["humidity"],
         "wind_speed": round(current["wind"]["speed"], 1),
+        "wind_deg": current["wind"].get("deg"),
+        "thunderstorm_active": 200 <= weather_id < 300,
         "visibility": current.get("visibility", 10000),
         "description": current["weather"][0]["description"].title(),
         "emoji": weather_emoji(weather_id, icon),

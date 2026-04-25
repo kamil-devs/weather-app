@@ -138,8 +138,46 @@
             </div>
 
             <div class="card map-card">
-                <div class="map-title">📍 <span id="map-city-label"></span></div>
+                <div class="map-title">
+                    <span>📍 <span id="map-city-label"></span></span>
+                    <button id="radar-btn" class="radar-btn" title="Rain Radar" data-i18n-title="labelRadar">🌧️</button>
+                </div>
                 <div id="map"></div>
+                <div id="direction-panel" class="direction-panel hidden">
+                    <div class="dir-row">
+                        <div class="dir-item" id="dir-wind-item">
+                            <div class="dir-icon">💨</div>
+                            <div class="dir-arrow-wrap">
+                                <div class="dir-arrow" id="arrow-wind"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3L4.5 16h5.5v5h4v-5h5.5z"/></svg></div>
+                            </div>
+                            <div class="dir-info">
+                                <div class="dir-label" data-i18n="dirWindFrom">Wind from</div>
+                                <div class="dir-val" id="dir-wind-val">—</div>
+                            </div>
+                        </div>
+                        <div class="dir-item" id="dir-rain-item">
+                            <div class="dir-icon">🌧️</div>
+                            <div class="dir-arrow-wrap">
+                                <div class="dir-arrow" id="arrow-rain"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3L4.5 16h5.5v5h4v-5h5.5z"/></svg></div>
+                            </div>
+                            <div class="dir-info">
+                                <div class="dir-label" data-i18n="dirRainFrom">Rain from</div>
+                                <div class="dir-val" id="dir-rain-val">—</div>
+                            </div>
+                        </div>
+                        <div class="dir-item" id="dir-storm-item">
+                            <div class="dir-icon">⚡</div>
+                            <div class="dir-arrow-wrap" id="storm-arrow-wrap">
+                                <div class="dir-arrow" id="arrow-storm"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3L4.5 16h5.5v5h4v-5h5.5z"/></svg></div>
+                            </div>
+                            <div class="dir-info">
+                                <div class="dir-label" data-i18n="dirStorm">Storm</div>
+                                <div class="dir-val" id="dir-storm-val">—</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="compass-note" class="compass-note"></div>
+                </div>
             </div>
         </div>
 
@@ -161,6 +199,7 @@
         </div>
     </main>
 
+    <script>const OWM_KEY = {{ owm_key | tojson }};</script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script src="{{ url_for('static', filename='app.js') }}"></script>
