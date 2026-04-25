@@ -2,7 +2,7 @@ from flask import Flask, render_template, jsonify, request
 import re
 import requests
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -221,18 +221,19 @@ def get_weather():
     except requests.exceptions.Timeout:
         return jsonify({"error": "Request timed out"}), 504
 
-    # Extract today's 3-hourly data for the temperature graph
-    now_utc = datetime.now(timezone.utc)
-    today = now_utc.strftime("%Y-%m-%d")
+    # Use the city's local timezone for all displayed times
+    local_tz = timezone(timedelta(seconds=current.get("timezone", 0)))
+    now_local = datetime.now(local_tz)
+    today = now_local.strftime("%Y-%m-%d")
 
     hourly = [{
-        "time": now_utc.strftime("%H:%M"),
+        "time": now_local.strftime("%H:%M"),
         "temp": round(current["main"]["temp"], 1),
         "feels_like": round(current["main"]["feels_like"], 1),
     }]
     for item in forecast["list"]:
-        dt = datetime.fromtimestamp(item["dt"], tz=timezone.utc)
-        if dt.strftime("%Y-%m-%d") == today and dt > now_utc:
+        dt = datetime.fromtimestamp(item["dt"], tz=local_tz)
+        if dt.strftime("%Y-%m-%d") == today and dt > now_local:
             hourly.append({
                 "time": dt.strftime("%H:%M"),
                 "temp": round(item["main"]["temp"], 1),
@@ -242,7 +243,7 @@ def get_weather():
     # Group forecast into daily buckets, skip today
     daily = {}
     for item in forecast["list"]:
-        dt = datetime.fromtimestamp(item["dt"], tz=timezone.utc)
+        dt = datetime.fromtimestamp(item["dt"], tz=local_tz)
         day_key = dt.strftime("%Y-%m-%d")
         if day_key == today:
             continue
@@ -291,8 +292,8 @@ def get_weather():
         "visibility": current.get("visibility", 10000),
         "description": current["weather"][0]["description"].title(),
         "emoji": weather_emoji(weather_id, icon),
-        "sunrise": datetime.fromtimestamp(current["sys"]["sunrise"], tz=timezone.utc).strftime("%H:%M"),
-        "sunset": datetime.fromtimestamp(current["sys"]["sunset"], tz=timezone.utc).strftime("%H:%M"),
+        "sunrise": datetime.fromtimestamp(current["sys"]["sunrise"], tz=local_tz).strftime("%H:%M"),
+        "sunset": datetime.fromtimestamp(current["sys"]["sunset"], tz=local_tz).strftime("%H:%M"),
         "forecast": forecast_days,
         "hourly": hourly,
         "alerts": generate_alerts(current, forecast, lang),
