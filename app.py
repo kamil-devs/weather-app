@@ -11,6 +11,9 @@ app = Flask(__name__)
 API_KEY = os.getenv("OPENWEATHER_API_KEY")
 BASE_URL = "https://api.openweathermap.org/data/2.5"
 
+DAYS_PL   = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Nd']
+MONTHS_PL = ['', 'sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru']
+
 
 def weather_emoji(weather_id, icon=""):
     if 200 <= weather_id < 300:
@@ -30,59 +33,78 @@ def weather_emoji(weather_id, icon=""):
     return "☁️"
 
 
-def generate_alerts(current, forecast):
+def generate_alerts(current, forecast, lang="en"):
     alerts = []
     temp = current["main"]["temp"]
     wind_speed = current["wind"]["speed"]
     humidity = current["main"]["humidity"]
     visibility = current.get("visibility", 10000)
     weather_id = current["weather"][0]["id"]
+    pl = lang == "pl"
+
+    def a(level, icon, en_title, en_msg, pl_title, pl_msg):
+        alerts.append({"level": level, "icon": icon,
+                        "title": pl_title if pl else en_title,
+                        "message": pl_msg if pl else en_msg})
 
     if temp >= 38:
-        alerts.append({"level": "danger", "icon": "🔥", "title": "Extreme Heat",
-                        "message": f"Temperature is {temp:.1f}°C. Stay indoors and hydrate frequently."})
+        a("danger", "🔥",
+          "Extreme Heat", f"Temperature is {temp:.1f}°C. Stay indoors and hydrate frequently.",
+          "Ekstremalne upały", f"Temperatura wynosi {temp:.1f}°C. Zostań w domu i często nawadniaj się.")
     elif temp >= 32:
-        alerts.append({"level": "warning", "icon": "☀️", "title": "High Temperature",
-                        "message": f"Temperature is {temp:.1f}°C. Stay cool and drink plenty of water."})
+        a("warning", "☀️",
+          "High Temperature", f"Temperature is {temp:.1f}°C. Stay cool and drink plenty of water.",
+          "Wysoka temperatura", f"Temperatura wynosi {temp:.1f}°C. Chłódź się i pij dużo wody.")
     elif temp <= -15:
-        alerts.append({"level": "danger", "icon": "🥶", "title": "Extreme Cold",
-                        "message": f"Temperature is {temp:.1f}°C. Risk of frostbite — dress in layers."})
+        a("danger", "🥶",
+          "Extreme Cold", f"Temperature is {temp:.1f}°C. Risk of frostbite — dress in layers.",
+          "Ekstremalny mróz", f"Temperatura wynosi {temp:.1f}°C. Ryzyko odmrożeń — ubierz się warstwowo.")
     elif temp <= 0:
-        alerts.append({"level": "warning", "icon": "❄️", "title": "Freezing Temperatures",
-                        "message": f"Temperature is {temp:.1f}°C. Watch for icy surfaces."})
+        a("warning", "❄️",
+          "Freezing Temperatures", f"Temperature is {temp:.1f}°C. Watch for icy surfaces.",
+          "Temperatura poniżej zera", f"Temperatura wynosi {temp:.1f}°C. Uwaga na oblodzone powierzchnie.")
 
     if wind_speed >= 20:
-        alerts.append({"level": "danger", "icon": "🌪️", "title": "Severe Wind",
-                        "message": f"Wind speed is {wind_speed:.1f} m/s. Dangerous — avoid outdoor activities."})
+        a("danger", "🌪️",
+          "Severe Wind", f"Wind speed is {wind_speed:.1f} m/s. Dangerous — avoid outdoor activities.",
+          "Silny wicher", f"Prędkość wiatru: {wind_speed:.1f} m/s. Niebezpiecznie — unikaj wyjść na zewnątrz.")
     elif wind_speed >= 10:
-        alerts.append({"level": "warning", "icon": "💨", "title": "Strong Wind",
-                        "message": f"Wind speed is {wind_speed:.1f} m/s. Exercise caution outdoors."})
+        a("warning", "💨",
+          "Strong Wind", f"Wind speed is {wind_speed:.1f} m/s. Exercise caution outdoors.",
+          "Silny wiatr", f"Prędkość wiatru: {wind_speed:.1f} m/s. Zachowaj ostrożność na zewnątrz.")
 
     if 200 <= weather_id < 300:
-        alerts.append({"level": "danger", "icon": "⚡", "title": "Thunderstorm",
-                        "message": "Active thunderstorm in the area. Seek shelter indoors immediately."})
+        a("danger", "⚡",
+          "Thunderstorm", "Active thunderstorm in the area. Seek shelter indoors immediately.",
+          "Burza", "Aktywna burza w okolicy. Natychmiast schroni się w budynku.")
 
     if weather_id in (502, 503, 504, 522):
-        alerts.append({"level": "danger", "icon": "🌊", "title": "Heavy Rain",
-                        "message": "Heavy rainfall. Risk of local flooding — avoid low-lying areas."})
+        a("danger", "🌊",
+          "Heavy Rain", "Heavy rainfall. Risk of local flooding — avoid low-lying areas.",
+          "Ulewa", "Intensywne opady deszczu. Ryzyko podtopień — unikaj nisko położonych terenów.")
     elif weather_id in (500, 501, 520, 521):
-        alerts.append({"level": "info", "icon": "🌧️", "title": "Rain",
-                        "message": "Rain in the area. Bring an umbrella."})
+        a("info", "🌧️",
+          "Rain", "Rain in the area. Bring an umbrella.",
+          "Deszcz", "Deszcz w okolicy. Weź ze sobą parasol.")
 
     if 600 <= weather_id < 700:
-        alerts.append({"level": "warning", "icon": "🌨️", "title": "Snow",
-                        "message": "Snowfall expected. Roads may be slippery — drive carefully."})
+        a("warning", "🌨️",
+          "Snow", "Snowfall expected. Roads may be slippery — drive carefully.",
+          "Śnieg", "Spodziewane opady śniegu. Drogi mogą być śliskie — jedź ostrożnie.")
 
     if visibility < 500:
-        alerts.append({"level": "danger", "icon": "🌫️", "title": "Very Low Visibility",
-                        "message": f"Visibility is only {visibility}m. Extremely hazardous conditions."})
+        a("danger", "🌫️",
+          "Very Low Visibility", f"Visibility is only {visibility}m. Extremely hazardous conditions.",
+          "Bardzo niska widoczność", f"Widoczność wynosi tylko {visibility}m. Wyjątkowo niebezpieczne warunki.")
     elif visibility < 1000:
-        alerts.append({"level": "warning", "icon": "🌫️", "title": "Low Visibility",
-                        "message": f"Visibility is {visibility}m. Drive with caution."})
+        a("warning", "🌫️",
+          "Low Visibility", f"Visibility is {visibility}m. Drive with caution.",
+          "Niska widoczność", f"Widoczność wynosi {visibility}m. Jedź ostrożnie.")
 
     if humidity >= 85 and temp >= 25:
-        alerts.append({"level": "info", "icon": "💧", "title": "High Humidity",
-                        "message": f"Humidity is {humidity}%. Conditions feel muggy — take it easy."})
+        a("info", "💧",
+          "High Humidity", f"Humidity is {humidity}%. Conditions feel muggy — take it easy.",
+          "Wysoka wilgotność", f"Wilgotność wynosi {humidity}%. Powietrze jest duszne — nie przemęczaj się.")
 
     return alerts
 
@@ -171,10 +193,14 @@ def get_weather():
     if not API_KEY:
         return jsonify({"error": "API key not configured. Set OPENWEATHER_API_KEY in .env"}), 500
 
+    lang = request.args.get("lang", "en")
+    if lang not in ("en", "pl"):
+        lang = "en"
+
     if lat and lon:
-        params = {"lat": lat, "lon": lon, "appid": API_KEY, "units": "metric"}
+        params = {"lat": lat, "lon": lon, "appid": API_KEY, "units": "metric", "lang": lang}
     elif city:
-        params = {"q": city, "appid": API_KEY, "units": "metric"}
+        params = {"q": city, "appid": API_KEY, "units": "metric", "lang": lang}
     else:
         return jsonify({"error": "City name or coordinates required"}), 400
 
@@ -222,8 +248,8 @@ def get_weather():
             continue
         if day_key not in daily:
             daily[day_key] = {
-                "day": dt.strftime("%a"),
-                "date": dt.strftime("%b %d"),
+                "day": DAYS_PL[dt.weekday()] if lang == "pl" else dt.strftime("%a"),
+                "date": f"{dt.day} {MONTHS_PL[dt.month]}" if lang == "pl" else dt.strftime("%b %d"),
                 "temps": [],
                 "ids": [],
                 "descs": [],
@@ -269,7 +295,7 @@ def get_weather():
         "sunset": datetime.fromtimestamp(current["sys"]["sunset"], tz=timezone.utc).strftime("%H:%M"),
         "forecast": forecast_days,
         "hourly": hourly,
-        "alerts": generate_alerts(current, forecast),
+        "alerts": generate_alerts(current, forecast, lang),
     })
 
 

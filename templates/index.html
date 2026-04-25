@@ -13,12 +13,17 @@
     <div id="bg-anim" aria-hidden="true"></div>
     <header class="header">
         <div class="header-inner">
-            <div class="logo">🌤️ Kamil's Weather</div>
+            <div class="logo" data-i18n="logo">🌤️ Kamil's Weather</div>
+            <div class="lang-switcher">
+                <button class="lang-btn active" data-lang="en" title="English">🇬🇧</button>
+                <button class="lang-btn" data-lang="pl" title="Polski">🇵🇱</button>
+            </div>
             <div class="search-wrap">
-                <input type="text" id="city-input" placeholder="Search city…" autocomplete="off" />
+                <input type="text" id="city-input" placeholder="Search city…" autocomplete="off"
+                       data-i18n-placeholder="searchPlaceholder" />
                 <div id="suggestions" class="suggestions-dropdown hidden"></div>
-                <button id="search-btn" title="Search">→</button>
-                <button id="locate-btn" title="Detect my location">📍</button>
+                <button id="search-btn" title="Search" data-i18n-title="searchTitle">→</button>
+                <button id="locate-btn" title="Detect my location" data-i18n-title="locateTitle">📍</button>
             </div>
             <button id="theme-btn" class="theme-btn" title="Switch to light mode">☀️</button>
         </div>
@@ -75,45 +80,57 @@
                     <span id="temp"></span><span class="unit">°C</span>
                 </div>
                 <div class="details-grid">
-                    <div class="detail-item" data-tooltip="Temperature adjusted for humidity and wind chill">
+                    <div class="detail-item"
+                         data-tooltip="Temperature adjusted for humidity and wind chill"
+                         data-i18n-tooltip="tipFeelsLike">
                         <span class="detail-icon">🌡️</span>
                         <div>
-                            <div class="detail-label">Feels like</div>
+                            <div class="detail-label" data-i18n="labelFeelsLike">Feels like</div>
                             <div class="detail-value" id="feels-like"></div>
                         </div>
                     </div>
-                    <div class="detail-item" data-tooltip="Today's forecast high and low temperatures">
+                    <div class="detail-item"
+                         data-tooltip="Today's forecast high and low temperatures"
+                         data-i18n-tooltip="tipHighLow">
                         <span class="detail-icon">🔼</span>
                         <div>
-                            <div class="detail-label">High / Low</div>
+                            <div class="detail-label" data-i18n="labelHighLow">High / Low</div>
                             <div class="detail-value" id="high-low"></div>
                         </div>
                     </div>
-                    <div class="detail-item" data-tooltip="Relative humidity — higher means more moisture in the air">
+                    <div class="detail-item"
+                         data-tooltip="Relative humidity — higher means more moisture in the air"
+                         data-i18n-tooltip="tipHumidity">
                         <span class="detail-icon">💧</span>
                         <div>
-                            <div class="detail-label">Humidity</div>
+                            <div class="detail-label" data-i18n="labelHumidity">Humidity</div>
                             <div class="detail-value" id="humidity"></div>
                         </div>
                     </div>
-                    <div class="detail-item" data-tooltip="Wind speed in metres per second">
+                    <div class="detail-item"
+                         data-tooltip="Wind speed in metres per second"
+                         data-i18n-tooltip="tipWind">
                         <span class="detail-icon">💨</span>
                         <div>
-                            <div class="detail-label">Wind</div>
+                            <div class="detail-label" data-i18n="labelWind">Wind</div>
                             <div class="detail-value" id="wind"></div>
                         </div>
                     </div>
-                    <div class="detail-item" data-tooltip="How far you can see horizontally">
+                    <div class="detail-item"
+                         data-tooltip="How far you can see horizontally"
+                         data-i18n-tooltip="tipVisibility">
                         <span class="detail-icon">👁️</span>
                         <div>
-                            <div class="detail-label">Visibility</div>
+                            <div class="detail-label" data-i18n="labelVisibility">Visibility</div>
                             <div class="detail-value" id="visibility"></div>
                         </div>
                     </div>
-                    <div class="detail-item" data-tooltip="Local sunrise and sunset times">
+                    <div class="detail-item"
+                         data-tooltip="Local sunrise and sunset times"
+                         data-i18n-tooltip="tipSunrise">
                         <span class="detail-icon">🌅</span>
                         <div>
-                            <div class="detail-label">Sunrise / Sunset</div>
+                            <div class="detail-label" data-i18n="labelSunrise">Sunrise / Sunset</div>
                             <div class="detail-value" id="sunrise-sunset"></div>
                         </div>
                     </div>
@@ -127,19 +144,19 @@
         </div>
 
         <section id="hourly-section" class="card hourly-section hidden">
-            <h2 class="section-title">🕒 Today's Temperature</h2>
+            <h2 class="section-title" data-i18n="sectionHourly">🕒 Today's Temperature</h2>
             <div class="chart-wrap">
                 <canvas id="hourly-chart"></canvas>
             </div>
         </section>
 
         <div id="alerts-section" class="alerts-section hidden">
-            <h2 class="section-title">⚠️ Weather Alerts</h2>
+            <h2 class="section-title" data-i18n="sectionAlerts">⚠️ Weather Alerts</h2>
             <div id="alerts-list"></div>
         </div>
 
         <div class="forecast-section">
-            <h2 class="section-title">📅 5-Day Forecast</h2>
+            <h2 class="section-title" data-i18n="sectionForecast">📅 5-Day Forecast</h2>
             <div id="forecast-grid" class="forecast-grid"></div>
         </div>
     </main>

@@ -2,6 +2,85 @@ let map = null;
 let marker = null;
 let hourlyChart = null;
 let lastHourlyData = null;
+let lastLocation = null;
+
+// ── i18n ─────────────────────────────────────────────
+const TRANSLATIONS = {
+  en: {
+    logo:              '🌤️ Kamil\'s Weather',
+    searchPlaceholder: 'Search city…',
+    searchTitle:       'Search',
+    locateTitle:       'Detect my location',
+    themeDark:         'Switch to dark mode',
+    themeLight:        'Switch to light mode',
+    sectionHourly:     '🕒 Today\'s Temperature',
+    sectionAlerts:     '⚠️ Weather Alerts',
+    sectionForecast:   '📅 5-Day Forecast',
+    labelFeelsLike:    'Feels like',
+    labelHighLow:      'High / Low',
+    labelHumidity:     'Humidity',
+    labelWind:         'Wind',
+    labelVisibility:   'Visibility',
+    labelSunrise:      'Sunrise / Sunset',
+    tipFeelsLike:      'Temperature adjusted for humidity and wind chill',
+    tipHighLow:        'Today\'s forecast high and low temperatures',
+    tipHumidity:       'Relative humidity — higher means more moisture in the air',
+    tipWind:           'Wind speed in metres per second',
+    tipVisibility:     'How far you can see horizontally',
+    tipSunrise:        'Local sunrise and sunset times',
+    locationError:     'Could not detect location',
+    connectionError:   'Failed to fetch weather data. Check your connection.',
+    unknownError:      'Unknown error occurred',
+  },
+  pl: {
+    logo:              '🌤️ Pogoda Kamila',
+    searchPlaceholder: 'Szukaj miasta…',
+    searchTitle:       'Szukaj',
+    locateTitle:       'Wykryj moją lokalizację',
+    themeDark:         'Przełącz na tryb ciemny',
+    themeLight:        'Przełącz na tryb jasny',
+    sectionHourly:     '🕒 Temperatura w ciągu dnia',
+    sectionAlerts:     '⚠️ Ostrzeżenia pogodowe',
+    sectionForecast:   '📅 Prognoza 5-dniowa',
+    labelFeelsLike:    'Odczuwalna',
+    labelHighLow:      'Maks / Min',
+    labelHumidity:     'Wilgotność',
+    labelWind:         'Wiatr',
+    labelVisibility:   'Widoczność',
+    labelSunrise:      'Wschód / Zachód',
+    tipFeelsLike:      'Temperatura uwzględniająca wilgotność i chłód wiatru',
+    tipHighLow:        'Prognozowana maksymalna i minimalna temperatura dnia',
+    tipHumidity:       'Wilgotność względna — wyższa oznacza więcej wilgoci w powietrzu',
+    tipWind:           'Prędkość wiatru w metrach na sekundę',
+    tipVisibility:     'Jak daleko widzisz w poziomie',
+    tipSunrise:        'Lokalne godziny wschodu i zachodu słońca',
+    locationError:     'Nie można wykryć lokalizacji',
+    connectionError:   'Nie udało się pobrać danych. Sprawdź połączenie.',
+    unknownError:      'Wystąpił nieznany błąd',
+  },
+};
+
+let currentLang = localStorage.getItem('weather-lang') || 'en';
+
+function applyLang(lang) {
+  const t = TRANSLATIONS[lang];
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t[el.dataset.i18n] ?? el.textContent;
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.placeholder = t[el.dataset.i18nPlaceholder] ?? el.placeholder;
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    el.title = t[el.dataset.i18nTitle] ?? el.title;
+  });
+  document.querySelectorAll('[data-i18n-tooltip]').forEach(el => {
+    el.setAttribute('data-tooltip', t[el.dataset.i18nTooltip] ?? '');
+  });
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.lang === lang);
+  });
+  updateThemeBtn();
+}
 
 // ── Weather SVG icons ────────────────────────────
 const WEATHER_SVGS = {
@@ -54,8 +133,9 @@ const content = document.getElementById('content');
 // ── Theme ────────────────────────────────────────────
 function updateThemeBtn() {
     const isLight = document.body.classList.contains('light');
+    const t = TRANSLATIONS[currentLang];
     themeBtn.textContent = isLight ? '🌙' : '☀️';
-    themeBtn.title = isLight ? 'Switch to dark mode' : 'Switch to light mode';
+    themeBtn.title = isLight ? t.themeDark : t.themeLight;
 }
 
 (function initTheme() {
@@ -65,7 +145,7 @@ function updateThemeBtn() {
     } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
         document.body.classList.add('light');
     }
-    updateThemeBtn();
+    applyLang(currentLang);
 })();
 
 themeBtn.addEventListener('click', () => {
@@ -73,6 +153,19 @@ themeBtn.addEventListener('click', () => {
     localStorage.setItem('weather-theme', document.body.classList.contains('light') ? 'light' : 'dark');
     updateThemeBtn();
     if (lastHourlyData) renderHourlyChart(lastHourlyData);
+});
+
+document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        if (btn.dataset.lang === currentLang) return;
+        currentLang = btn.dataset.lang;
+        localStorage.setItem('weather-lang', currentLang);
+        applyLang(currentLang);
+        if (lastLocation) {
+            const { city, lat, lon } = lastLocation;
+            fetchWeather(city ?? null, lat ?? null, lon ?? null);
+        }
+    });
 });
 
 // ── Suggestions ──────────────────────────────────
@@ -229,16 +322,22 @@ function showContent() {
 }
 
 async function fetchWeather(city, lat, lon) {
+    if (lat != null && lon != null) {
+        lastLocation = { lat, lon, city: null };
+    } else {
+        lastLocation = { city, lat: null, lon: null };
+    }
     showLoading();
-    const url = (lat != null && lon != null)
-        ? '/api/weather?lat=' + lat + '&lon=' + lon
-        : '/api/weather?city=' + encodeURIComponent(city);
+    const base = (lat != null && lon != null)
+        ? `/api/weather?lat=${lat}&lon=${lon}`
+        : `/api/weather?city=${encodeURIComponent(city)}`;
+    const url = `${base}&lang=${currentLang}`;
     try {
         const resp = await fetch(url);
         const data = await resp.json();
         hideLoading();
         if (!resp.ok) {
-            showError(data.error || 'Unknown error occurred');
+            showError(data.error || TRANSLATIONS[currentLang].unknownError);
             return;
         }
         renderWeather(data);
@@ -246,7 +345,7 @@ async function fetchWeather(city, lat, lon) {
         setTimeout(() => updateMap(data.lat, data.lon, data.city, data.country, data.emoji, data.temp, data.description), 50);
     } catch {
         hideLoading();
-        showError('Failed to fetch weather data. Check your connection.');
+        showError(TRANSLATIONS[currentLang].connectionError);
     }
 }
 
@@ -552,7 +651,7 @@ locateBtn.addEventListener('click', async () => {
     try {
         if (await gpsLocate()) return;
         if (await ipLocate()) return;
-        showError('Could not detect location');
+        showError(TRANSLATIONS[currentLang].locationError);
     } finally {
         locateBtn.disabled = false;
         locateBtn.textContent = '📍';
