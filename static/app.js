@@ -1,6 +1,45 @@
 let map = null;
 let marker = null;
 
+// ── Weather SVG icons ────────────────────────────
+const WEATHER_SVGS = {
+  '☀️': `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="12" fill="#FFD54F"/><g stroke="#FFD54F" stroke-width="2.5" stroke-linecap="round"><line x1="32" y1="7" x2="32" y2="13"/><line x1="32" y1="51" x2="32" y2="57"/><line x1="7" y1="32" x2="13" y2="32"/><line x1="51" y1="32" x2="57" y2="32"/><line x1="14.6" y1="14.6" x2="18.9" y2="18.9"/><line x1="45.1" y1="45.1" x2="49.4" y2="49.4"/><line x1="49.4" y1="14.6" x2="45.1" y2="18.9"/><line x1="18.9" y1="45.1" x2="14.6" y2="49.4"/></g></svg>`,
+  '🌙': `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M42 12C35 15 30 22 30 32C30 42 35 49 42 52C30 56 14 48 14 32C14 16 28 8 42 12Z" fill="#90CAF9"/></svg>`,
+  '⛅': `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="18" cy="19" r="9" fill="#FFD54F"/><g stroke="#FFD54F" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="18" y2="10"/><line x1="5" y1="19" x2="9" y2="19"/><line x1="9.5" y1="9.5" x2="12.3" y2="12.3"/><line x1="26.5" y1="9.5" x2="23.7" y2="12.3"/></g><ellipse cx="36" cy="46" rx="20" ry="11" fill="#B0BEC5"/><ellipse cx="24" cy="40" rx="13" ry="11" fill="#B0BEC5"/><ellipse cx="46" cy="42" rx="11" ry="9" fill="#CFD8DC"/></svg>`,
+  '☁️': `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="32" cy="44" rx="22" ry="12" fill="#78909C"/><ellipse cx="20" cy="36" rx="13" ry="12" fill="#78909C"/><ellipse cx="42" cy="38" rx="12" ry="10" fill="#90A4AE"/><ellipse cx="31" cy="34" rx="11" ry="10" fill="#90A4AE"/></svg>`,
+  '🌦️': `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="32" cy="30" rx="20" ry="11" fill="#78909C"/><ellipse cx="20" cy="24" rx="13" ry="11" fill="#78909C"/><ellipse cx="42" cy="27" rx="11" ry="9" fill="#90A4AE"/><g stroke="#64B5F6" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="46" x2="19" y2="56"/><line x1="32" y1="44" x2="29" y2="54"/><line x1="42" y1="46" x2="39" y2="56"/></g></svg>`,
+  '🌧️': `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="32" cy="25" rx="20" ry="11" fill="#607D8B"/><ellipse cx="20" cy="20" rx="13" ry="11" fill="#607D8B"/><ellipse cx="42" cy="22" rx="11" ry="9" fill="#78909C"/><g stroke="#64B5F6" stroke-width="2.5" stroke-linecap="round"><line x1="20" y1="42" x2="16" y2="56"/><line x1="30" y1="40" x2="26" y2="54"/><line x1="40" y1="42" x2="36" y2="56"/><line x1="50" y1="40" x2="46" y2="54"/></g></svg>`,
+  '⛈️': `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="32" cy="22" rx="20" ry="11" fill="#455A64"/><ellipse cx="20" cy="17" rx="13" ry="11" fill="#455A64"/><ellipse cx="42" cy="19" rx="11" ry="9" fill="#546E7A"/><polyline points="36,34 27,47 33,47 23,60" stroke="#FFD54F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>`,
+  '❄️': `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="32" cy="25" rx="20" ry="11" fill="#78909C"/><ellipse cx="20" cy="20" rx="13" ry="11" fill="#78909C"/><ellipse cx="42" cy="22" rx="11" ry="9" fill="#90A4AE"/><g stroke="#E3F2FD" stroke-width="2.2" stroke-linecap="round"><line x1="32" y1="40" x2="32" y2="60"/><line x1="21" y1="46" x2="43" y2="54"/><line x1="43" y1="46" x2="21" y2="54"/><line x1="26" y1="40" x2="32" y2="44"/><line x1="38" y1="40" x2="32" y2="44"/><line x1="26" y1="60" x2="32" y2="56"/><line x1="38" y1="60" x2="32" y2="56"/></g></svg>`,
+  '🌫️': `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="20" x2="54" y2="20" stroke="#90A4AE" stroke-width="4" stroke-linecap="round"/><line x1="14" y1="32" x2="50" y2="32" stroke="#78909C" stroke-width="4" stroke-linecap="round"/><line x1="10" y1="44" x2="54" y2="44" stroke="#90A4AE" stroke-width="4" stroke-linecap="round"/></svg>`,
+};
+
+const EMOJI_TO_THEME = {
+  '☀️': 'w-sunny',
+  '🌙': 'w-night',
+  '⛅': 'w-cloudy',
+  '☁️': 'w-cloudy',
+  '🌦️': 'w-rainy',
+  '🌧️': 'w-rainy',
+  '⛈️': 'w-thunder',
+  '❄️': 'w-snowy',
+  '🌫️': 'w-foggy',
+};
+
+function applyWeatherTheme(emoji) {
+  const themes = ['w-sunny', 'w-night', 'w-cloudy', 'w-rainy', 'w-thunder', 'w-snowy', 'w-foggy'];
+  themes.forEach(t => document.body.classList.remove(t));
+  document.body.classList.add(EMOJI_TO_THEME[emoji] || 'w-cloudy');
+}
+
+function setWeatherIcon(el, emoji) {
+  const svgStr = WEATHER_SVGS[emoji];
+  el.textContent = '';
+  if (!svgStr) { el.textContent = emoji; return; }
+  const doc = new DOMParser().parseFromString(svgStr, 'image/svg+xml');
+  el.appendChild(document.adoptNode(doc.documentElement));
+}
+
 const cityInput = document.getElementById('city-input');
 const searchBtn = document.getElementById('search-btn');
 const locateBtn = document.getElementById('locate-btn');
@@ -190,7 +229,8 @@ function setText(id, value) {
 function renderWeather(d) {
     setText('city-name', d.city + ', ' + d.country);
     setText('weather-desc', d.description);
-    setText('weather-emoji', d.emoji);
+    setWeatherIcon(document.getElementById('weather-emoji'), d.emoji);
+    applyWeatherTheme(d.emoji);
     setText('temp', d.temp);
     setText('feels-like', d.feels_like + '°C');
     setText('high-low', d.temp_max + '°C / ' + d.temp_min + '°C');
@@ -259,8 +299,8 @@ function renderForecast(days) {
         dateEl.textContent = d.date;
 
         const emojiEl = document.createElement('div');
-        emojiEl.className = 'fc-emoji';
-        emojiEl.textContent = d.emoji;
+        emojiEl.className = 'fc-icon';
+        setWeatherIcon(emojiEl, d.emoji);
 
         const descEl = document.createElement('div');
         descEl.className = 'fc-desc';

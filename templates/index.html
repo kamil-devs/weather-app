@@ -4,10 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Weather App</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
+    <div id="bg-anim" aria-hidden="true"></div>
     <header class="header">
         <div class="header-inner">
             <div class="logo">🌤️ Weather by Kamil</div>
@@ -35,7 +38,7 @@
                         <div class="city-name" id="city-name"></div>
                         <div class="weather-desc" id="weather-desc"></div>
                     </div>
-                    <div class="weather-emoji" id="weather-emoji"></div>
+                    <div class="weather-icon-lg" id="weather-emoji"></div>
                 </div>
                 <div class="temp-display">
                     <span id="temp"></span><span class="unit">°C</span>

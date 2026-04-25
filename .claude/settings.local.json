@@ -9,7 +9,8 @@
       "Bash(python *)",
       "Bash(curl -s \"http://127.0.0.1:5000/api/geocode?q=Lublin\")",
       "Bash(curl -s \"http://127.0.0.1:5000/api/weather?lat=51.2465&lon=22.5684\")",
-      "Bash(taskkill /F /IM python.exe)"
+      "Bash(taskkill /F /IM python.exe)",
+      "Bash(grep -v \"^d.*\\\\.$\")"
     ]
   }
 }
